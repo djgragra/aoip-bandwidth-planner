@@ -91,6 +91,7 @@
               <select id="newNodeType"><option value="device" data-i18n="type.device">Device</option><option value="switch" data-i18n="type.switch">Switch</option></select></label>
             <label class="f"><span data-i18n="dev.connect">Connect to</span><select id="newNodeTo"></select></label>
             <label class="f"><span data-i18n="dev.speed">Link speed</span><select id="newNodeSpeed"></select></label>
+            <label class="f"><span data-i18n="dev.network">Network</span><select id="newNodeNet"></select></label>
             <button type="submit" class="btn btn--small" data-i18n="dev.add">Add</button>
           </form>
           <p class="hint" id="nodeHint" role="status"></p>
@@ -101,6 +102,7 @@
             <label class="f"><span data-i18n="lnk.from">From</span><select id="newLinkA"></select></label>
             <label class="f"><span data-i18n="lnk.to">To</span><select id="newLinkB"></select></label>
             <label class="f"><span data-i18n="lnk.speed">Speed</span><select id="newLinkSpeed"></select></label>
+            <label class="f"><span data-i18n="lnk.network">Network</span><select id="newLinkNet"></select></label>
             <button type="submit" class="btn btn--small" data-i18n="lnk.add">Add link</button>
           </form>
           <p class="hint" id="linkHint" role="status"></p>
@@ -130,6 +132,7 @@
               <option value="" data-i18n="plan.exampleNone">Choose…</option>
               <option value="studio" data-i18n="ex.studio">Small studio</option>
               <option value="radio" data-i18n="ex.radio">Radio station</option>
+              <option value="redundant" data-i18n="ex.redundant">Redundant Dante network</option>
               <option value="empty" data-i18n="ex.empty">Empty plan</option>
             </select></label>
           <div class="btnrow">
@@ -173,10 +176,11 @@
       <ul><li data-i18n="help.l4a"></li><li data-i18n="help.l4b"></li><li data-i18n="help.l4c"></li><li data-i18n="help.l4d"></li></ul>
       <h3 data-i18n="help.h5">Dante: estimated</h3><p data-i18n="help.p5"></p>
       <h3 data-i18n="help.h6">Safety threshold</h3><p data-i18n="help.p6"></p>
+      <h3 id="helpRedundancy" data-i18n="help.hRed">Redundant networks (Dante)</h3><p data-i18n="help.pRed"></p>
       <h3 id="helpLimits" data-i18n="help.h7">Assumptions and limits</h3>
       <ul><li data-i18n="help.l7a"></li><li data-i18n="help.l7b"></li><li data-i18n="help.l7c"></li><li data-i18n="help.l7d"></li></ul>
       <h3 id="helpValidation" data-i18n="help.h8">Validation</h3>
-      <ul><li data-i18n="help.v1"></li><li data-i18n="help.v2"></li><li data-i18n="help.v3"></li><li data-i18n="help.v4"></li></ul>
+      <ul><li data-i18n="help.v1"></li><li data-i18n="help.v2"></li><li data-i18n="help.v3"></li><li data-i18n="help.v5"></li><li data-i18n="help.v4"></li></ul>
       <h3 id="helpSources" data-i18n="help.h9">Sources</h3>
       <ul class="help__sources">
         <li><a href="https://ravenna-network.com/wp-content/uploads/2020/02/RAVENNA___AES67_V1.0.pdf" target="_blank" rel="noopener">RAVENNA &amp; AES67 white paper</a> — <span data-i18n="src.aes67"></span></li>
@@ -184,6 +188,7 @@
         <li><a href="https://www.aimsalliance.org/wp-content/uploads/2018/11/AES67-101-the-basics-of-AES67.pdf" target="_blank" rel="noopener">AES67-101</a> — <span data-i18n="src.aes101"></span></li>
         <li><a href="https://studio-tech.com/wp-content/uploads/2020/09/adding-dante-to-your-network-audinate-2020.pdf" target="_blank" rel="noopener">Adding Dante to Your Network</a> — <span data-i18n="src.dante1"></span></li>
         <li><a href="https://www.getdante.com/resources/catalog/networking/dante-information-for-network-administrators/" target="_blank" rel="noopener">Dante Information for Network Administrators</a> — <span data-i18n="src.dante2"></span></li>
+        <li><a href="https://dev.audinate.com/GA/dante-controller/userguide/pdf/AUD-MAN-DanteController-3.10.2.x-v1.0.pdf" target="_blank" rel="noopener">Dante Controller User Guide</a> — <span data-i18n="src.dc"></span></li>
         <li><a href="https://www.glensound.co.uk/assets/library/5ddff2e74d5e7-Dante%20bandwidth.pdf" target="_blank" rel="noopener">Glensound, Dante bandwidth</a> — <span data-i18n="src.glen"></span></li>
         <li><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener">RFC 3550</a>, <a href="https://www.rfc-editor.org/rfc/rfc768" target="_blank" rel="noopener">768</a>, <a href="https://www.rfc-editor.org/rfc/rfc791" target="_blank" rel="noopener">791</a> — <span data-i18n="src.rfc"></span></li>
         <li>IEEE 802.3 — <span data-i18n="src.ieee"></span></li>

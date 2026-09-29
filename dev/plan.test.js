@@ -69,3 +69,22 @@ test("autoLayout places every node inside the drawing area and keeps manual posi
   P.autoLayout(disconnected);
   assert.notDeepEqual([disconnected.nodes[0].x, disconnected.nodes[0].y], [disconnected.nodes[1].x, disconnected.nodes[1].y]);
 });
+
+test("links carry a network (primary by default) and the redundant flag only applies to Dante", () => {
+  const p = P.normalizePlan({
+    nodes: [{ id: "a", name: "A", type: "device" }, { id: "b", name: "B", type: "switch" }],
+    links: [{ id: "l1", a: "a", b: "b", speed: 1000 }, { id: "l2", a: "a", b: "b", speed: 1000, net: "secondary" }, { id: "l3", a: "b", b: "a", speed: 100, net: "secondary" }, { id: "l4", a: "a", b: "b", net: "weird" }],
+    flows: [{ id: "f1", mode: "dante", src: "a", redundant: true }, { id: "f2", mode: "aes67", src: "a", redundant: true }]
+  });
+  assert.deepEqual(p.links.map((l) => [l.id, l.net]), [["l1", "primary"], ["l2", "secondary"]]);   // l3 duplicates l2, l4 duplicates l1
+  assert.equal(p.flows[0].redundant, true); assert.equal(p.flows[1].redundant, false);
+});
+
+test("redundant example: two separate networks, redundant Dante flows, no rule violations", () => {
+  const p = P.example("redundant");
+  const r = M.computeLoads(P.normalizePlan(JSON.parse(JSON.stringify(p))));
+  assert.equal(r.summary.unreachable, 0); assert.equal(r.summary.speedMismatch.length, 0); assert.equal(r.summary.sharedSwitches.length, 0);
+  const secondary = p.links.filter((l) => l.net === "secondary");
+  assert.equal(secondary.length, 3);
+  assert.ok(secondary.some((l) => (r.links[l.id].ab.mbps + r.links[l.id].ba.mbps) > 0));
+});

@@ -24,7 +24,7 @@
 
   function newFlow(id, src, colorIdx) {
     return { id: id, name: "", mode: "aes67", src: src || "", cast: "multicast", dests: [], ch: 8, fs: 48000, bits: 24,
-             ptime: "1000", samples: 48, cps: 8, copies: 1, color: colorIdx || 0 };
+             ptime: "1000", samples: 48, cps: 8, copies: 1, redundant: false, color: colorIdx || 0 };
   }
 
   // Validates and repairs an arbitrary object (imported JSON or stored plan). Returns a new plan or null.
@@ -48,10 +48,11 @@
     input.links.slice(0, LIMITS.links).forEach(function (l) {
       if (!l || typeof l.id !== "string" || lids[l.id] || !/^[A-Za-z0-9_-]{1,16}$/.test(l.id)) return;
       if (!ids[l.a] || !ids[l.b] || l.a === l.b) return;
-      var key = [l.a, l.b].sort().join("|");
-      if (pairs[key]) return;                                   // one link per pair of nodes
+      var net = l.net === "secondary" ? "secondary" : "primary";
+      var key = [l.a, l.b].sort().join("|") + "|" + net;
+      if (pairs[key]) return;                                   // one link per pair of nodes on each network
       lids[l.id] = true; pairs[key] = true;
-      p.links.push({ id: l.id, a: l.a, b: l.b, speed: M.LINK_SPEEDS.indexOf(Number(l.speed)) >= 0 ? Number(l.speed) : 1000 });
+      p.links.push({ id: l.id, a: l.a, b: l.b, net: net, speed: M.LINK_SPEEDS.indexOf(Number(l.speed)) >= 0 ? Number(l.speed) : 1000 });
     });
     var fids = {}, isDev = {};
     p.nodes.forEach(function (n) { isDev[n.id] = n.type === "device"; });
@@ -70,6 +71,7 @@
         samples: clampInt(f.samples, 1, LIMITS.samples, 48),
         cps: clampInt(f.cps, 1, LIMITS.cps, 8),
         copies: clampInt(f.copies, 1, LIMITS.copies, 1),
+        redundant: mode === "dante" && !!f.redundant,
         color: clampInt(f.color, 0, FLOW_COLORS - 1, i % FLOW_COLORS)
       };
       p.flows.push(flow);
@@ -133,7 +135,7 @@
     return f;
   }
   function N(id, name, type) { return { id: id, name: name, type: type, x: 0, y: 0, manual: false }; }
-  function L(id, a, b, speed) { return { id: id, a: a, b: b, speed: speed }; }
+  function L(id, a, b, speed, net) { return { id: id, a: a, b: b, speed: speed, net: net || "primary" }; }
 
   var EXAMPLES = {
     studio: function () {
@@ -159,6 +161,20 @@
         F("f4", "On-air feed", "dante", "n4", "unicast", ["n6"], 2, 48000, 24, "1000", 3),
         F("f5", "Backup feed", "dante", "n5", "unicast", ["n6"], 2, 48000, 24, "1000", 4),
         F("f6", "Codec returns (6 feeds)", "aes67", "n7", "multicast", ["n4", "n5"], 8, 48000, 24, "250", 5, { copies: 6 })
+      ];
+      return p;
+    },
+    redundant: function () {
+      var p = emptyPlan();
+      p.nodes = [N("n1", "Primary switch", "switch"), N("n2", "Secondary switch", "switch"), N("n3", "Console", "device"), N("n4", "Stage box", "device"), N("n5", "Recorder", "device")];
+      p.links = [
+        L("l1", "n1", "n3", 1000), L("l2", "n1", "n4", 1000), L("l3", "n1", "n5", 1000),
+        L("l4", "n2", "n3", 1000, "secondary"), L("l5", "n2", "n4", 1000, "secondary"), L("l6", "n2", "n5", 1000, "secondary")
+      ];
+      p.flows = [
+        F("f1", "Stage box to console", "dante", "n4", "unicast", ["n3"], 64, 48000, 24, "1000", 0, { redundant: true }),
+        F("f2", "Console to recorder", "dante", "n3", "unicast", ["n5"], 64, 48000, 24, "1000", 1, { redundant: true }),
+        F("f3", "Monitor mix", "aes67", "n3", "multicast", ["n5"], 2, 48000, 24, "1000", 2)
       ];
       return p;
     },

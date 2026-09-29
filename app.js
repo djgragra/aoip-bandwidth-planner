@@ -79,15 +79,20 @@
   function devices() { return state.plan.nodes.filter(function (n) { return n.type === "device"; }); }
   function flowName(f) { return f.name || t("flw.defaultName", state.plan.flows.indexOf(f) + 1); }
   function flowById(id) { for (var i = 0; i < state.plan.flows.length; i++) if (state.plan.flows[i].id === id) return state.plan.flows[i]; return null; }
-  function linkName(l) { return nodeName(l.a) + " ↔ " + nodeName(l.b); }
+  function hasSecondary() { return state.plan.links.some(function (l) { return l.net === "secondary"; }); }
+  function netName(net) { return t(net === "secondary" ? "net.secondary" : "net.primary"); }
+  function netLetter(net) { return t(net === "secondary" ? "net.letterS" : "net.letterP"); }
+  function linkName(l) { return nodeName(l.a) + " ↔ " + nodeName(l.b) + (hasSecondary() ? " (" + netLetter(l.net) + ")" : ""); }
   function typeLabel(type) { return t(type === "switch" ? "type.switch" : "type.device"); }
-  function linkBetween(a, b) {
-    return state.plan.links.some(function (l) { return (l.a === a && l.b === b) || (l.a === b && l.b === a); });
+  function linkBetween(a, b, net, ignoreId) {
+    return state.plan.links.some(function (l) {
+      return l.id !== ignoreId && (l.net === "secondary" ? "secondary" : "primary") === net && ((l.a === a && l.b === b) || (l.a === b && l.b === a));
+    });
   }
 
   function relayout() { Plan.autoLayout(state.plan); }
 
-  function addNode(name, type, connectTo, speed) {
+  function addNode(name, type, connectTo, speed, net) {
     var p = state.plan;
     if (p.nodes.length >= Plan.LIMITS.nodes) return false;
     var id = Plan.nextId("n", p.nodes);
@@ -95,7 +100,7 @@
     var n = { id: id, name: (name || "").trim().slice(0, Plan.LIMITS.nameLen) || t(type === "switch" ? "dev.defaultSwitch" : "dev.defaultDevice", count), type: type, x: 500, y: 100, manual: false };
     p.nodes.push(n);
     if (connectTo && nodeById(connectTo) && p.links.length < Plan.LIMITS.links) {
-      p.links.push({ id: Plan.nextId("l", p.links), a: connectTo, b: id, speed: speed });
+      p.links.push({ id: Plan.nextId("l", p.links), a: connectTo, b: id, net: net === "secondary" ? "secondary" : "primary", speed: speed });
     }
     relayout();
     return true;
@@ -126,7 +131,7 @@
   }
 
   function cleanFlow(f) {
-    if (f.mode === "dante") f.bits = 24;
+    if (f.mode === "dante") f.bits = 24; else f.redundant = false;
     f.dests = f.dests.filter(function (d) { return d !== f.src; });
   }
 
@@ -150,6 +155,10 @@
       else if (state.plan.nodes[i]) sel.value = state.plan.nodes[i].id;
     });
     fillSpeedSelect($("newLinkSpeed"), Number($("newLinkSpeed").value) || 1000);
+    ["newNodeNet", "newLinkNet"].forEach(function (id) {
+      var sel = $(id), keep = sel.value || "primary"; clear(sel);
+      sel.appendChild(option("primary", netName("primary"), keep === "primary")); sel.appendChild(option("secondary", netName("secondary"), keep === "secondary"));
+    });
   }
 
   // ---------- renderers: node and link editors ----------
@@ -175,6 +184,12 @@
     var box = $("linkEdit"); clear(box);
     if (!state.plan.links.length) box.appendChild(h("p", { class: "hint", text: t("lnk.empty") }));
     state.plan.links.forEach(function (l) {
+      var netSel = h("select", { "aria-label": t("lnk.network") + ": " + linkName(l), "data-k": "link-net", "data-id": l.id }, [
+        option("primary", netName("primary"), l.net !== "secondary"), option("secondary", netName("secondary"), l.net === "secondary")]);
+      netSel.addEventListener("change", function () {
+        if (linkBetween(l.a, l.b, netSel.value, l.id)) { netSel.value = l.net === "secondary" ? "secondary" : "primary"; $("linkHint").textContent = t("lnk.exists"); return; }
+        l.net = netSel.value; $("linkHint").textContent = ""; renderAll();
+      });
       var sp = h("select", { "aria-label": t("lnk.speed") + ": " + linkName(l), "data-k": "link-speed", "data-id": l.id });
       Model.LINK_SPEEDS.forEach(function (s) { sp.appendChild(option(String(s), speedName(s), s === l.speed)); });
       sp.addEventListener("change", function () { l.speed = Number(sp.value); onPlanValueChange(false); });
@@ -184,7 +199,7 @@
         if (state.selected === l.id) state.selected = null;
         relayout(); renderAll();
       });
-      box.appendChild(h("div", { class: "row row--link" }, [h("span", { class: "row__name", text: linkName(l) }), sp, del]));
+      box.appendChild(h("div", { class: "row row--link" }, [h("span", { class: "row__name", text: nodeName(l.a) + " \u2194 " + nodeName(l.b) }), netSel, sp, del]));
     });
   }
 
@@ -275,6 +290,11 @@
         fs.appendChild(h("label", { class: "check check--tight" }, [cb, h("span", { text: d.name })]));
       });
       card.appendChild(fs);
+      if (f.mode === "dante") {
+        var red = h("input", { type: "checkbox", checked: !!f.redundant, "data-k": "f-redundant", "data-fid": f.id });
+        red.addEventListener("change", function () { f.redundant = red.checked; onPlanValueChange(false); });
+        card.appendChild(h("label", { class: "check check--flow" }, [red, h("span", {}, [t("flw.redundant"), h("small", { class: "f__hint", text: " " + t("flw.redundantHint") })])]));
+      }
 
       card.appendChild(h("div", { class: "flow__sum", "data-sum": f.id }));
       card.appendChild(h("div", { class: "flow__warn", "data-warn": f.id }));
@@ -330,6 +350,7 @@
         line = t("flow.aes67", calc.streams.length, streamText(calc), fmtMbps(calc.mbps * entry.copies), fmtInt(calc.pps * entry.copies)) + " · " + who;
       } else {
         line = (f.cast === "multicast" ? t("flow.dante.multi", fmtMbps(calc.mbps * entry.copies)) : t("flow.dante.uni", fmtMbps(calc.mbps * entry.copies), calc.flows * entry.copies)) + " · " + who;
+        if (entry.nets.length > 1) line += " · " + t("flow.onBoth");
       }
       calc.warnings.forEach(function (w) {
         if (w === "cpsLimited") warns.push(t("w.cpsLimited", calc.channelsPerStream));
@@ -338,7 +359,10 @@
       });
       if (!f.src) warns.push(t("flw.noSrc"));
       else if (!f.dests.length) warns.push(t("flw.noRx"));
-      entry.receivers.forEach(function (r) { if (!r.hops) warns.push(t("w.unreach", nodeName(r.node))); });
+      entry.receivers.forEach(function (r) {
+        if (r.hops) return;
+        warns.push(entry.nets.length > 1 || hasSecondary() ? t("w.unreachNet", nodeName(r.node), netName(r.net)) : t("w.unreach", nodeName(r.node)));
+      });
       sum.textContent = line;
       clear(warn);
       warns.forEach(function (w) { warn.appendChild(h("p", { text: w })); });
@@ -354,9 +378,9 @@
     var plan = state.plan;
     $("diagramEmpty").hidden = plan.nodes.length > 0;
     Diagram.render($("diagram"), plan, state.loads, {
-      selected: state.selected, typeLabel: typeLabel, fmtPct: fmtPct, flowColor: flowColorOf,
+      selected: state.selected, typeLabel: typeLabel, fmtPct: fmtPct, flowColor: flowColorOf, netLetter: netLetter,
       linkTitle: function (l, ab, ba) {
-        return t("dia.linkTitle", nodeName(l.a), nodeName(l.b), fmtPct(ab).replace(" %", ""), fmtPct(ba).replace(" %", "")) + " (" + speedName(l.speed) + ")";
+        return t("dia.linkTitle", nodeName(l.a), nodeName(l.b), fmtPct(ab).replace(" %", ""), fmtPct(ba).replace(" %", "")) + " (" + speedName(l.speed) + (hasSecondary() ? ", " + netName(l.net) : "") + ")";
       }
     });
   }
@@ -385,12 +409,18 @@
     var notes = h("ul", { class: "summary__notes" });
     if (sm.unreachable) notes.appendChild(h("li", { class: "is-warn", text: t("sum.unreachable", sm.unreachable) }));
     if (sm.loops) notes.appendChild(h("li", { class: "is-warn", text: t("sum.loops") }));
+    sm.speedMismatch.forEach(function (id) { notes.appendChild(h("li", { class: "is-warn", text: t("sum.speedMismatch", nodeName(id)) })); });
+    sm.sharedSwitches.forEach(function (id) { notes.appendChild(h("li", { class: "is-warn", text: t("sum.sharedSwitch", nodeName(id)) })); });
     if (plan.flows.some(function (f) { return f.mode === "dante"; })) notes.appendChild(h("li", { text: t("sum.dante") }));
     if (notes.children.length) box.appendChild(notes);
   }
 
   function renderLegend() {
     var ul = $("legend"); clear(ul);
+    if (hasSecondary()) {
+      ul.appendChild(h("li", {}, [h("span", { class: "netchip netchip--primary", "aria-hidden": "true" }), h("span", { text: t("dia.netP") })]));
+      ul.appendChild(h("li", {}, [h("span", { class: "netchip netchip--secondary", "aria-hidden": "true" }), h("span", { text: t("dia.netS") })]));
+    }
     state.plan.flows.forEach(function (f) {
       ul.appendChild(h("li", {}, [h("span", { class: "chip f" + f.color, "aria-hidden": "true" }), h("span", { text: flowName(f) }),
         h("small", { text: f.mode === "dante" ? "Dante ≈" : "AES67" })]));
@@ -431,7 +461,7 @@
     var l = state.selected ? linkById(state.selected) : null;
     if (!l) { box.appendChild(h("p", { class: "hint", text: t("ins.none") })); return; }
     var ld = state.loads.links[l.id];
-    box.appendChild(h("p", { class: "insp__head" }, [h("strong", { text: linkName(l) }), " · " + t("ins.capacity") + " " + speedName(l.speed)]));
+    box.appendChild(h("p", { class: "insp__head" }, [h("strong", { text: nodeName(l.a) + " ↔ " + nodeName(l.b) }), " · " + t("ins.capacity") + " " + speedName(l.speed) + (hasSecondary() ? " · " + t("ins.network") + ": " + netName(l.net) : "")]));
     [["ab", l.a, l.b], ["ba", l.b, l.a]].forEach(function (d) {
       var dir = ld[d[0]];
       var sec = h("section", { class: "insp__dir" }, [
@@ -569,7 +599,7 @@
     $("addNodeForm").addEventListener("submit", function (e) {
       e.preventDefault();
       var hint = $("nodeHint"); hint.textContent = "";
-      if (!addNode($("newNodeName").value, $("newNodeType").value, $("newNodeTo").value, Number($("newNodeSpeed").value))) { hint.textContent = t("dev.limit"); return; }
+      if (!addNode($("newNodeName").value, $("newNodeType").value, $("newNodeTo").value, Number($("newNodeSpeed").value), $("newNodeNet").value)) { hint.textContent = t("dev.limit"); return; }
       $("newNodeName").value = "";
       renderAll();
     });
@@ -579,9 +609,10 @@
       hint.textContent = "";
       if (state.plan.nodes.length < 2) { hint.textContent = t("lnk.needNodes"); return; }
       if (!a || !b || a === b) { hint.textContent = t("lnk.same"); return; }
-      if (linkBetween(a, b)) { hint.textContent = t("lnk.exists"); return; }
+      var net = $("newLinkNet").value === "secondary" ? "secondary" : "primary";
+      if (linkBetween(a, b, net)) { hint.textContent = t("lnk.exists"); return; }
       if (state.plan.links.length >= Plan.LIMITS.links) { hint.textContent = t("dev.limit"); return; }
-      state.plan.links.push({ id: Plan.nextId("l", state.plan.links), a: a, b: b, speed: Number($("newLinkSpeed").value) });
+      state.plan.links.push({ id: Plan.nextId("l", state.plan.links), a: a, b: b, net: net, speed: Number($("newLinkSpeed").value) });
       relayout(); renderAll();
     });
     $("addFlowBtn").addEventListener("click", function () { addFlow(); renderAll(); });

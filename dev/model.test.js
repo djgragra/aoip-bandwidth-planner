@@ -155,3 +155,65 @@ test("AES67 flow through the planner: 8 ch 1 ms multicast adds 9.84 Mbps on the 
   const r = M.computeLoads(plan({ flows: [f] }));
   near(r.links.l1.ab.mbps, 9.84, 1e-9, "l1"); near(r.links.l2.ab.pct, 9.84, 1e-9, "pct on 100M");
 });
+
+// ---- Dante redundancy (Dante Controller User Guide: two separate networks, same audio on both, same link speed) ----
+function redundantPlan(flowOverrides, mutate) {
+  const p = {
+    settings: { threshold: 70, vlan: false, wire: true, snooping: true },
+    nodes: [
+      { id: "S1", name: "P switch", type: "switch" }, { id: "S2", name: "S switch", type: "switch" },
+      { id: "A", name: "A", type: "device" }, { id: "B", name: "B", type: "device" }
+    ],
+    links: [
+      { id: "p1", a: "A", b: "S1", speed: 1000, net: "primary" }, { id: "p2", a: "B", b: "S1", speed: 1000, net: "primary" },
+      { id: "s1", a: "A", b: "S2", speed: 1000, net: "secondary" }, { id: "s2", a: "B", b: "S2", speed: 1000, net: "secondary" }
+    ],
+    flows: [Object.assign({ id: "f1", mode: "dante", src: "A", cast: "unicast", dests: ["B"], ch: 8, fs: 48000, bits: 24, ptime: "1000", cps: 8, copies: 1, redundant: true }, flowOverrides || {})]
+  };
+  if (mutate) mutate(p);
+  return p;
+}
+
+test("a redundant Dante flow is counted once on each network", () => {
+  const r = M.computeLoads(redundantPlan());
+  for (const id of ["p1", "p2", "s1", "s2"]) assert.equal(r.links[id][id.endsWith("1") ? "ab" : "ba"].mbps, 12, id);
+  assert.equal(r.links.s1.ba.mbps, 0);
+});
+
+test("without the redundant option only the primary network carries the flow", () => {
+  const r = M.computeLoads(redundantPlan({ redundant: false }));
+  assert.equal(r.links.p1.ab.mbps, 12); assert.equal(r.links.s1.ab.mbps, 0); assert.equal(r.links.s2.ba.mbps, 0);
+});
+
+test("AES67 flows are never duplicated on the secondary network", () => {
+  const r = M.computeLoads(redundantPlan({ mode: "aes67", redundant: true }));
+  assert.ok(r.links.p1.ab.mbps > 0); assert.equal(r.links.s1.ab.mbps, 0);
+});
+
+test("the two networks are routed separately: no path on the secondary network is reported", () => {
+  const r = M.computeLoads(redundantPlan({}, (p) => { p.links = p.links.filter((l) => l.id !== "s2"); }));
+  assert.equal(r.summary.unreachable, 1);
+  assert.equal(r.flows[0].receivers.filter((x) => x.net === "secondary" && !x.hops).length, 1);
+  assert.equal(r.flows[0].receivers.filter((x) => x.net === "primary" && x.hops).length, 1);
+});
+
+test("a switch that has both a primary and a secondary link is reported as shared between the networks", () => {
+  const p = redundantPlan({}, (pl) => { pl.links.push({ id: "x", a: "S1", b: "S2", speed: 1000, net: "primary" }); });
+  const r = M.computeLoads(p);
+  assert.deepEqual(r.summary.sharedSwitches, ["S2"]);   // S2 carries the secondary links and now also a primary one
+});
+
+test("redundancy rules: same link speed on both interfaces, and no switch shared by the two networks", () => {
+  assert.deepEqual(M.computeLoads(redundantPlan()).summary.speedMismatch, []);
+  assert.deepEqual(M.computeLoads(redundantPlan()).summary.sharedSwitches, []);
+  const mismatch = M.computeLoads(redundantPlan({}, (p) => { p.links.find((l) => l.id === "s1").speed = 100; }));
+  assert.deepEqual(mismatch.summary.speedMismatch, ["A"]);
+  const plain = M.computeLoads(redundantPlan({ redundant: false }, (p) => { p.links.find((l) => l.id === "s1").speed = 100; }));
+  assert.deepEqual(plain.summary.speedMismatch, []);                // only checked for devices used by redundant flows
+});
+
+test("loops are detected per network", () => {
+  const p = redundantPlan({}, (pl) => { pl.links.push({ id: "s3", a: "A", b: "B", speed: 1000, net: "secondary" }); });
+  assert.equal(M.computeLoads(p).summary.loops, true);
+  assert.equal(M.computeLoads(redundantPlan()).summary.loops, false);
+});

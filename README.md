@@ -9,15 +9,16 @@ Plan a Dante / AES67 audio network: draw devices, switches and links, describe t
 
 ## What it does
 
-- **Network**: any number of devices and switches joined by links of 100 Mbps, 1 Gbps or 10 Gbps. Nodes can be dragged (or moved with the arrow keys) on a schematic diagram; "Auto layout" arranges them.
+- **Network**: any number of devices and switches joined by links of 100 Mbps, 1 Gbps or 10 Gbps. Each link belongs to the **primary** or the **secondary** network (Dante redundancy). Nodes can be dragged (or moved with the arrow keys) on a schematic diagram; "Auto layout" arranges them.
 - **Flows**: each flow has a source device, receivers, channels, sample rate (44.1 / 48 / 96 kHz), bit depth, delivery (unicast or multicast) and a model:
   - **AES67 (RTP)**: calculated from the standard's packet times, with a packet time choice (125 µs, 250 µs, 333 µs, 1 ms, 4 ms, or custom samples per packet), channels per stream, and 16 / 24 bit.
   - **Dante (estimate)**: scaled from the figures Audinate publishes (Dante's own packet format is not public); 24 bit only.
   - **Copies** repeat identical flows (e.g. many devices with the same setup).
+  - **Redundant** (Dante flows): the flow is also sent on the secondary network, routed and counted separately on each network.
 - **Results**: every link shows two bars (one per direction, links are full duplex), filled with coloured segments, one per flow, with a tick at the safety threshold. Above the threshold a link turns amber, above its capacity red. Selecting a link lists the flows using it, with Mbps and packets per second.
 - **Routing**: unicast flows are sent once per receiver along the shortest path; multicast flows are sent once per link, either only towards their receivers (IGMP snooping on) or flooded to every link reachable from the source (off).
 - **Settings**: safety threshold (default 70 %), counting of preamble and inter-frame gap (line-rate load), 802.1Q VLAN tag (+4 bytes), IGMP snooping.
-- **Plans**: saved automatically on the device, JSON export / import, two examples (small studio, radio station).
+- **Plans**: saved automatically on the device, JSON export / import, three examples (small studio, radio station, redundant Dante network).
 - Languages: English, Italiano, Español. The app always opens in English; a manual change is remembered. Theme: light, dark, or follow the system. Installable as an app (Install app button; Share → Add to Home Screen on iPhone/iPad; File → Add to Dock on Safari for Mac); works offline; shows an "update available" banner. Everything runs in the browser and nothing is sent anywhere; fonts (IBM Plex) are served locally.
 
 ## Formulas and sources
@@ -48,19 +49,22 @@ Dante's packet format is proprietary, so Dante cannot be calculated from a stand
 | A flow costs a full flow even for 1 channel; 5 channels use 2 flows; another receiver needs another flow | Glensound, [Dante bandwidth](https://www.glensound.co.uk/assets/library/5ddff2e74d5e7-Dante%20bandwidth.pdf) | Third party (manufacturer), consistent with Audinate |
 | 96 kHz ≈ twice the bandwidth (1 flow of 4 channels: 5.9 Mbps at 48 kHz, 11.8 Mbps at 96 kHz) | Glensound (measurements on a Brooklyn module) | Third-party measurement, no Audinate figure |
 
-Model: unicast = `ceil(C / 4) × 6 Mbps × (Fs / 48 kHz)`; multicast = `C × 1.5 Mbps × (Fs / 48 kHz)`. **Not documented, so not offered**: Dante at 16 bit, and samples-per-channel settings other than the typical 16. Dante on 10 Gbps links is not covered by the documents read.
+| Redundancy: primary and secondary interfaces connect to two **separate** networks; "the same audio data is transmitted on both the primary and secondary networks simultaneously"; both interfaces of a redundant device must use the same link speed | [Dante Controller User Guide (Audinate)](https://dev.audinate.com/GA/dante-controller/userguide/pdf/AUD-MAN-DanteController-3.10.2.x-v1.0.pdf), section "Redundancy" | Read (version 3.10.2.x, © 2017; newer versions exist and were not read) |
+
+Model: unicast = `ceil(C / 4) × 6 Mbps × (Fs / 48 kHz)`; multicast = `C × 1.5 Mbps × (Fs / 48 kHz)`. A redundant Dante flow is routed and counted once on each network. The planner warns when the two interfaces of a redundant device run at different speeds and when a switch connects the two networks. **Not documented, so not offered**: Dante at 16 bit, and samples-per-channel settings other than the typical 16. Dante on 10 Gbps links is not covered by the documents read.
 
 ## Assumptions and limits
 
 - Audio traffic only. Clock (PTP), discovery, control and other traffic are not counted, nor QoS, latency or switch capacity.
 - IPv4, untagged Ethernet unless the VLAN option is on, nominal line rates, one link between two nodes.
 - Where two paths exist the shortest is used (spanning tree assumed; a loop is reported).
+- AES67 streams are counted on the primary network only; AES67 redundancy schemes (e.g. SMPTE ST 2022-7) are not modelled.
 - Some devices carry fewer channels per flow at high sample rates (Glensound: 2 channels per flow at 88.2 / 96 kHz on Ultimo devices): not modelled.
 - The planner sizes a design; it does not replace a network capture.
 
 ## Validation and references
 
-Results as of September 2026 (`node --test dev/*.test.js`, 24 tests):
+Results as of September 2026 (`node --test dev/*.test.js`, 33 tests):
 
 | Reference | What it validates | Result |
 |---|---|---|
@@ -70,6 +74,7 @@ Results as of September 2026 (`node --test dev/*.test.js`, 24 tests):
 | Audinate figures | 4 ch = 6 Mbps, 5 ch = 12 Mbps, 64 ch unicast = 96 Mbps ("about 100 Mbps"), 8 multicast ch = 12 Mbps | reproduced |
 | Glensound measured table | 8 / 16 / 32 flows at 48 and 96 kHz | estimate within 3 % |
 | Routing and load tests | direction of load, unicast duplication, multicast (snooping on / off), copies, thresholds, unreachable receivers, loops, import repair | pass |
+| Dante Controller User Guide, "Redundancy" | same flow counted on both networks, networks routed separately, same-speed rule, no switch shared by the two networks | pass |
 
 **Not validated**: real captures on a network (a Wireshark capture of an AES67 stream would confirm the 78-byte overhead), the exact text of the AES67 standard (the aes.org page could not be read automatically; the figures come from documents by the standard's authors), Dante at other sample rates and bit depths.
 
@@ -87,6 +92,7 @@ Last read on 2026-09-29:
 | Adding Dante to Your Network (Audinate) | 2020 |
 | Dante Information for Network Administrators (Audinate) | July 2026 |
 | Glensound, Dante bandwidth | 22 November 2019 |
+| Dante Controller User Guide (Audinate) | 3.10.2.x, 2017 (newer versions exist) |
 
 ## Run locally
 

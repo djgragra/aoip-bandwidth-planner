@@ -171,23 +171,36 @@
   }
 
   // ---- load computation ---------------------------------------------------------
+  // Dante redundancy: a device has a primary and a secondary interface on two separate networks,
+  // and the same audio is transmitted on both at the same time (Dante Controller User Guide).
+  // A link belongs to one network ("primary" or "secondary"); a redundant Dante flow is routed
+  // and counted once on each network. Everything else uses the primary network only.
+  var NETS = ["primary", "secondary"];
+  function linkNet(l) { return l.net === "secondary" ? "secondary" : "primary"; }
+
   /* computeLoads(plan) -> {
        links: { linkId: { capacity, ab: dir, ba: dir } }   dir = { mbps, pps, pct, state, items: [...] }
-       flows: [ { id, calc, receivers: [{ node, hops|null }], ... } ]
-       summary: { worstPct, worstLink, warn, over, loops, unreachable } } */
+       flows: [ { id, calc, receivers: [{ node, net, hops|null }], ... } ]
+       summary: { worstPct, worstLink, warn, over, loops, unreachable, speedMismatch, sharedSwitches } } */
   function computeLoads(plan) {
     var s = plan.settings, opts = { vlan: !!s.vlan, wire: s.wire !== false };
     var nodeById = {}, linkById = {};
     plan.nodes.forEach(function (n) { nodeById[n.id] = n; });
     plan.links.forEach(function (l) { linkById[l.id] = l; });
-    var adj = buildGraph(plan.nodes, plan.links);
+    var graphs = {};
+    NETS.forEach(function (net) {
+      graphs[net] = buildGraph(plan.nodes, plan.links.filter(function (l) { return linkNet(l) === net; }));
+    });
 
-    var res = { links: {}, flows: [], summary: { worstPct: 0, worstLink: null, warn: 0, over: 0, loops: false, unreachable: 0 } };
+    var res = { links: {}, flows: [], summary: { worstPct: 0, worstLink: null, warn: 0, over: 0, loops: false, unreachable: 0, speedMismatch: [], sharedSwitches: [] } };
     plan.links.forEach(function (l) {
       res.links[l.id] = { capacity: l.speed, ab: dirInit(), ba: dirInit() };
     });
     function dirInit() { return { mbps: 0, pps: 0, pct: 0, state: "ok", items: [] }; }
-    res.summary.loops = plan.links.length > plan.nodes.length - componentCount(plan.nodes, adj);
+    res.summary.loops = NETS.some(function (net) {
+      var count = plan.links.filter(function (l) { return linkNet(l) === net; }).length;
+      return count > plan.nodes.length - componentCount(plan.nodes, graphs[net]);
+    });
 
     function add(hop, flow, mbps, pps, streams) {
       var l = linkById[hop.link], d = res.links[hop.link][hop.from === l.a ? "ab" : "ba"];
@@ -201,41 +214,47 @@
     plan.flows.forEach(function (f) {
       var copies = Math.max(1, Math.round(f.copies || 1));
       var calc = flowBandwidth(f, opts);
-      var entry = { id: f.id, calc: calc, receivers: [], copies: copies, unreachable: 0 };
+      var entry = { id: f.id, calc: calc, receivers: [], copies: copies, unreachable: 0, nets: [] };
       res.flows.push(entry);
       var src = nodeById[f.src];
       if (!calc.valid || !src) return;
-      var tree = bfsTree(adj, f.src);
       var dests = (f.dests || []).filter(function (d) { return nodeById[d] && d !== f.src; });
       var streams = calc.streams ? calc.streams.length : (calc.flows || 1);
       var perPps = calc.pps || 0;
+      entry.nets = f.mode === "dante" && f.redundant ? NETS.slice() : ["primary"];
 
-      if (f.cast === "multicast") {
-        var used = {};
-        if (s.snooping) {
+      entry.nets.forEach(function (net) {
+        var tree = bfsTree(graphs[net], f.src);
+        if (f.cast === "multicast") {
+          var used = {};
+          if (s.snooping) {
+            dests.forEach(function (d) {
+              var hops = pathFrom(tree, f.src, d);
+              entry.receivers.push({ node: d, net: net, hops: hops });
+              if (!hops) { entry.unreachable++; return; }
+              hops.forEach(function (h) { used[h.link + ">" + h.from] = h; });
+            });
+          } else {
+            // no IGMP snooping: the flow is flooded to every link reachable from the source
+            Object.keys(tree.parent).forEach(function (n) {
+              var p = tree.parent[n]; used[p.link + ">" + p.from] = { link: p.link, from: p.from, to: n };
+            });
+            dests.forEach(function (d) {
+              var hops = pathFrom(tree, f.src, d);
+              entry.receivers.push({ node: d, net: net, hops: hops });
+              if (!hops) entry.unreachable++;
+            });
+          }
+          Object.keys(used).forEach(function (k) { add(used[k], f, calc.mbps * copies, perPps * copies, streams * copies); });
+        } else {
           dests.forEach(function (d) {
             var hops = pathFrom(tree, f.src, d);
-            entry.receivers.push({ node: d, hops: hops });
+            entry.receivers.push({ node: d, net: net, hops: hops });
             if (!hops) { entry.unreachable++; return; }
-            hops.forEach(function (h) { used[h.link + ">" + h.from] = h; });
+            hops.forEach(function (h) { add(h, f, calc.mbps * copies, perPps * copies, streams * copies); });
           });
-        } else {
-          // no IGMP snooping: the flow is flooded to every link reachable from the source
-          Object.keys(tree.parent).forEach(function (n) {
-            var p = tree.parent[n]; used[p.link + ">" + p.from] = { link: p.link, from: p.from, to: n };
-          });
-          dests.forEach(function (d) { entry.receivers.push({ node: d, hops: pathFrom(tree, f.src, d) }); });
-          entry.unreachable = entry.receivers.filter(function (r) { return !r.hops; }).length;
         }
-        Object.keys(used).forEach(function (k) { add(used[k], f, calc.mbps * copies, perPps * copies, streams * copies); });
-      } else {
-        dests.forEach(function (d) {
-          var hops = pathFrom(tree, f.src, d);
-          entry.receivers.push({ node: d, hops: hops });
-          if (!hops) { entry.unreachable++; return; }
-          hops.forEach(function (h) { add(h, f, calc.mbps * copies, perPps * copies, streams * copies); });
-        });
-      }
+      });
       res.summary.unreachable += entry.unreachable;
     });
 
@@ -248,6 +267,30 @@
         if (d.pct > res.summary.worstPct) { res.summary.worstPct = d.pct; res.summary.worstLink = l.id; }
       });
     });
+
+    // Dante redundancy rules: both interfaces of a redundant device run at the same link speed,
+    // and the two networks never share a switch.
+    var speeds = {}, netsOfNode = {};
+    plan.links.forEach(function (l) {
+      [l.a, l.b].forEach(function (id) {
+        var e = speeds[id] = speeds[id] || { primary: {}, secondary: {} };
+        e[linkNet(l)][l.speed] = true;
+        (netsOfNode[id] = netsOfNode[id] || {})[linkNet(l)] = true;
+      });
+    });
+    var redundantDevices = {};
+    plan.flows.forEach(function (f) {
+      if (f.mode === "dante" && f.redundant) { redundantDevices[f.src] = true; (f.dests || []).forEach(function (d) { redundantDevices[d] = true; }); }
+    });
+    Object.keys(redundantDevices).forEach(function (id) {
+      var e = speeds[id];
+      if (!e || !nodeById[id] || nodeById[id].type !== "device") return;
+      var p = Object.keys(e.primary).sort().join(","), q = Object.keys(e.secondary).sort().join(",");
+      if (p && q && p !== q) res.summary.speedMismatch.push(id);
+    });
+    plan.nodes.forEach(function (n) {
+      if (n.type === "switch" && netsOfNode[n.id] && netsOfNode[n.id].primary && netsOfNode[n.id].secondary) res.summary.sharedSwitches.push(n.id);
+    });
     return res;
   }
 
@@ -255,7 +298,7 @@
     AES67: AES67, ETH: ETH, PACKET_TIMES: PACKET_TIMES, DANTE: DANTE, LINK_SPEEDS: LINK_SPEEDS,
     samplesPerPacket: samplesPerPacket, overheadBytes: overheadBytes, maxChannelsPerStream: maxChannelsPerStream,
     aes67Stream: aes67Stream, aes67Flow: aes67Flow, danteFlow: danteFlow, flowBandwidth: flowBandwidth,
-    buildGraph: buildGraph, bfsTree: bfsTree, pathFrom: pathFrom, computeLoads: computeLoads
+    NETS: NETS, linkNet: linkNet, buildGraph: buildGraph, bfsTree: bfsTree, pathFrom: pathFrom, computeLoads: computeLoads
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.AoipModel = api;

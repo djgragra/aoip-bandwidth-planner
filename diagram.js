@@ -84,7 +84,7 @@
   }
 
   /* render(svg, plan, loads, opts)
-       opts = { selected, typeLabel(type), linkTitle(link, abPct, baPct), fmtPct(pct) } */
+       opts = { selected, typeLabel(type), netLetter(net), linkTitle(link, abPct, baPct), fmtPct(pct), flowColor(flowId) } */
   function render(svg, plan, loads, opts) {
     var H = heightFor(plan);
     svg.setAttribute("viewBox", "0 0 " + VB_W + " " + H);
@@ -93,6 +93,10 @@
     plan.nodes.forEach(function (n) { byId[n.id] = n; });
     var gLinks = el("g", {}, svg, "links"), gNodes = el("g", {}, svg, "nodes");
     var thr = plan.settings.threshold / 100;
+    var hasSecondary = plan.links.some(function (l) { return l.net === "secondary"; });
+    // links between the same two nodes (one per network) are drawn side by side
+    var groups = {};
+    plan.links.forEach(function (l) { var k = [l.a, l.b].sort().join("|"); (groups[k] = groups[k] || []).push(l.id); });
 
     plan.links.forEach(function (l) {
       var a = byId[l.a], b = byId[l.b], ld = loads.links[l.id];
@@ -102,7 +106,10 @@
       var p1 = { x: s.x + dx * 6, y: s.y + dy * 6 }, p2 = { x: e.x - dx * 6, y: e.y - dy * 6 };
       var L = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
       var nx = -dy, ny = dx;
-      var g = el("g", { "data-link": l.id }, gLinks, "link" + (opts.selected === l.id ? " is-selected" : ""));
+      var grp = groups[[l.a, l.b].sort().join("|")], shift = (grp.indexOf(l.id) - (grp.length - 1) / 2) * 50;
+      p1.x += nx * shift; p1.y += ny * shift; p2.x += nx * shift; p2.y += ny * shift;
+      var net = l.net === "secondary" ? "secondary" : "primary";
+      var g = el("g", { "data-link": l.id }, gLinks, "link link--" + net + (opts.selected === l.id ? " is-selected" : ""));
       var title = opts.linkTitle(l, ld.ab.pct, ld.ba.pct);
       if (L < 24) {   // nodes almost touching: draw a plain line
         el("line", { x1: num(a.x), y1: num(a.y), x2: num(b.x), y2: num(b.y) }, g, "wire");
@@ -144,7 +151,7 @@
         if (L > 60) {
           var m = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
           var sp = el("text", { x: num(m.x), y: num(m.y + 4), "text-anchor": "middle" }, g, "speed");
-          sp.textContent = speedLabel(l.speed);
+          sp.textContent = speedLabel(l.speed) + (hasSecondary ? " " + opts.netLetter(net) : "");
         }
       }
       var hit = el("line", { x1: num(p1.x), y1: num(p1.y), x2: num(p2.x), y2: num(p2.y), tabindex: 0, role: "button", "aria-label": title }, g, "hit");

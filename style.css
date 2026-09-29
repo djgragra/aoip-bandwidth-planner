@@ -101,7 +101,7 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
 .check { display: flex; gap: 10px; align-items: center; min-height: 32px; cursor: pointer; }
 .check--tight { min-height: 30px; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) 118px 34px; gap: 6px; align-items: center; margin-bottom: 6px; }
-.row--link { grid-template-columns: minmax(0, 1fr) 118px 34px; }
+.row--link { grid-template-columns: minmax(0, 1fr) 104px 100px 34px; }
 .row__name { font-size: 14px; overflow-wrap: anywhere; }
 .addrow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; padding: 10px; border: 1px dashed var(--line); border-radius: 4px; }
 .addrow .btn { grid-column: 1 / -1; }
@@ -227,7 +227,8 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
   .bar { gap: 10px; } .brand__title { font-size: 18px; }
   .controls { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
   .controls .ctl select { width: 100%; } .controls .btn { width: 100%; padding: 6px 8px; }
-  .row, .row--link { grid-template-columns: minmax(0, 1fr) 104px 34px; }
+  .row { grid-template-columns: minmax(0, 1fr) 104px 34px; }
+  .row--link { grid-template-columns: minmax(0, 1fr) 96px 92px 34px; }
   .grid2, .addrow { grid-template-columns: minmax(0, 1fr); }
   .flow__head { grid-template-columns: auto minmax(0, 1fr) auto; } .flow__head .btn--small { grid-column: 2 / 3; justify-self: start; }
   .linkrow__dir { grid-template-columns: minmax(0, 6em) minmax(0, 1fr) 4em; }
@@ -238,3 +239,11 @@ input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent);
   .update { width: calc(100% - 24px); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- networks (Dante primary / secondary) ---------- */
+.link--secondary .wire { stroke: var(--f4); stroke-dasharray: 8 5; stroke-width: 2; }
+.link--secondary .speed { fill: var(--f4); }
+.netchip { display: inline-block; width: 28px; height: 0; border-top: 3px solid var(--ink2); vertical-align: middle; margin-right: 6px; }
+.netchip--secondary { border-top: 3px dashed var(--f4); }
+.badge--net { color: var(--f4); }
+.check--flow { margin-top: 2px; }
