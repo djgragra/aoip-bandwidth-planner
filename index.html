@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0b0d17">
+  <meta name="description" content="Plan Dante and AES67 network bandwidth: draw devices, switches and links, add audio flows and see how much of each link they use.">
+  <meta name="author" content="Graziano Melzi · OnAir Garage">
+  <title>AoIP Bandwidth Planner</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="AoIP Planner">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#diagramWrap" data-i18n="dia.label">Network diagram</a>
+
+  <header class="bar">
+    <div class="brand">
+      <img class="brand__icon" src="icons/icon.svg" alt="" width="34" height="34">
+      <div>
+        <h1 class="brand__title" data-i18n="app.title">AoIP Bandwidth Planner</h1>
+        <p class="brand__sub" data-i18n="app.subtitle">Plan Dante and AES67 network bandwidth</p>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="ctl"><span class="ctl__label" data-i18n="ctl.language">Language</span><select id="langSel"></select></label>
+      <label class="ctl"><span class="ctl__label" data-i18n="ctl.theme">Theme</span>
+        <select id="themeSel">
+          <option value="auto" data-i18n="theme.auto">Auto</option>
+          <option value="light" data-i18n="theme.light">Light</option>
+          <option value="dark" data-i18n="theme.dark">Dark</option>
+        </select>
+      </label>
+      <button type="button" id="installBtn" class="btn" hidden data-i18n="inst.button">Install app</button>
+      <button type="button" id="helpBtn" class="btn btn--ghost" data-i18n="ctl.help">How it works</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="canvas" aria-labelledby="diagramTitle">
+      <h2 class="sr-only" id="diagramTitle" data-i18n="dia.label">Network diagram</h2>
+      <div class="summary" id="summary" role="status"></div>
+      <div class="diagram" id="diagramWrap">
+        <svg id="diagram" viewBox="0 0 1000 420" role="group" aria-label="Network diagram" preserveAspectRatio="xMidYMid meet"></svg>
+        <p class="diagram__empty" id="diagramEmpty" data-i18n="dia.empty">Add devices and links to draw the network.</p>
+        <div class="diagram__tools">
+          <span class="diagram__hint" data-i18n="dia.dragHint">Drag a node to move it. Select a link for details.</span>
+          <button type="button" id="layoutBtn" class="btn btn--small" data-i18n="dia.autoLayout">Auto layout</button>
+        </div>
+      </div>
+      <ul class="legend" id="legend"></ul>
+
+      <div class="panes">
+        <section class="pane" aria-labelledby="inspTitle">
+          <h2 class="pane__title" id="inspTitle" data-i18n="ins.title">Link details</h2>
+          <div id="inspector"></div>
+        </section>
+        <section class="pane" aria-labelledby="llTitle">
+          <h2 class="pane__title" id="llTitle" data-i18n="ll.title">Link load</h2>
+          <ul class="linklist" id="linkList"></ul>
+        </section>
+      </div>
+    </section>
+
+    <aside class="rack" aria-label="Inputs">
+      <details class="unit" open id="unitFlows">
+        <summary><span class="unit__label" data-i18n="flw.title">Flows</span></summary>
+        <div class="unit__body">
+          <div id="flowList"></div>
+          <button type="button" id="addFlowBtn" class="btn btn--small" data-i18n="flw.add">Add flow</button>
+          <p class="hint" id="flowHint"></p>
+        </div>
+      </details>
+
+      <details class="unit" open id="unitNet">
+        <summary><span class="unit__label" data-i18n="net.title">Network</span></summary>
+        <div class="unit__body">
+          <h3 class="unit__sub" data-i18n="dev.title">Devices and switches</h3>
+          <div id="nodeList"></div>
+          <form class="addrow" id="addNodeForm" novalidate>
+            <label class="f"><span data-i18n="dev.name">Name</span><input type="text" id="newNodeName" maxlength="24" autocomplete="off"></label>
+            <label class="f"><span data-i18n="dev.type">Type</span>
+              <select id="newNodeType"><option value="device" data-i18n="type.device">Device</option><option value="switch" data-i18n="type.switch">Switch</option></select></label>
+            <label class="f"><span data-i18n="dev.connect">Connect to</span><select id="newNodeTo"></select></label>
+            <label class="f"><span data-i18n="dev.speed">Link speed</span><select id="newNodeSpeed"></select></label>
+            <button type="submit" class="btn btn--small" data-i18n="dev.add">Add</button>
+          </form>
+          <p class="hint" id="nodeHint" role="status"></p>
+
+          <h3 class="unit__sub" data-i18n="lnk.title">Links</h3>
+          <div id="linkEdit"></div>
+          <form class="addrow" id="addLinkForm" novalidate>
+            <label class="f"><span data-i18n="lnk.from">From</span><select id="newLinkA"></select></label>
+            <label class="f"><span data-i18n="lnk.to">To</span><select id="newLinkB"></select></label>
+            <label class="f"><span data-i18n="lnk.speed">Speed</span><select id="newLinkSpeed"></select></label>
+            <button type="submit" class="btn btn--small" data-i18n="lnk.add">Add link</button>
+          </form>
+          <p class="hint" id="linkHint" role="status"></p>
+        </div>
+      </details>
+
+      <details class="unit" id="unitSet">
+        <summary><span class="unit__label" data-i18n="set.title">Settings</span></summary>
+        <div class="unit__body">
+          <label class="f f--inline"><span data-i18n="set.threshold">Safety threshold</span>
+            <span class="numbox"><input type="number" id="setThreshold" min="1" max="100" step="1" inputmode="numeric"><span class="numbox__unit">%</span></span></label>
+          <p class="hint" data-i18n="set.thresholdHint">Audinate recommends keeping audio traffic under 70 % of any link.</p>
+          <label class="check"><input type="checkbox" id="setWire"><span data-i18n="set.wire">Count preamble and inter-frame gap</span></label>
+          <p class="hint" data-i18n="set.wireHint"></p>
+          <label class="check"><input type="checkbox" id="setVlan"><span data-i18n="set.vlan">802.1Q VLAN tag</span></label>
+          <p class="hint" data-i18n="set.vlanHint"></p>
+          <label class="check"><input type="checkbox" id="setSnooping"><span data-i18n="set.snooping">IGMP snooping</span></label>
+          <p class="hint" data-i18n="set.snoopingHint"></p>
+        </div>
+      </details>
+
+      <details class="unit" id="unitPlan">
+        <summary><span class="unit__label" data-i18n="plan.title">Plan</span></summary>
+        <div class="unit__body">
+          <label class="f"><span data-i18n="plan.example">Load an example</span>
+            <select id="exampleSel">
+              <option value="" data-i18n="plan.exampleNone">Choose…</option>
+              <option value="studio" data-i18n="ex.studio">Small studio</option>
+              <option value="radio" data-i18n="ex.radio">Radio station</option>
+              <option value="empty" data-i18n="ex.empty">Empty plan</option>
+            </select></label>
+          <div class="btnrow">
+            <button type="button" id="exportBtn" class="btn btn--small" data-i18n="plan.export">Export JSON</button>
+            <button type="button" id="importBtn" class="btn btn--small" data-i18n="plan.import">Import JSON</button>
+            <input type="file" id="importIn" accept="application/json,.json" hidden>
+          </div>
+          <p class="hint" id="planMsg" role="status"></p>
+          <p class="hint" data-i18n="plan.saved">The plan is saved automatically on this device only.</p>
+        </div>
+      </details>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <span data-i18n="foot.by">Graziano Melzi · OnAir Garage</span><span aria-hidden="true">·</span>
+    <a href="https://onairgarage.com" rel="noopener">onairgarage.com</a><span aria-hidden="true">·</span>
+    <span data-i18n="foot.license">MIT License</span><span aria-hidden="true">·</span>
+    <a href="mailto:hello@onairgarage.com" data-i18n="foot.contact">Contact</a><span aria-hidden="true">·</span>
+    <span id="ver">v2026.9.1</span>
+  </footer>
+
+  <dialog id="confirmDlg" class="dlg" aria-labelledby="confirmText">
+    <p id="confirmText"></p>
+    <div class="btnrow">
+      <button type="button" id="confirmYes" class="btn" data-i18n="plan.yes">Replace</button>
+      <button type="button" id="confirmNo" class="btn btn--ghost" data-i18n="plan.no">Cancel</button>
+    </div>
+  </dialog>
+
+  <dialog id="helpDlg" class="help" aria-labelledby="helpTitle">
+    <div class="help__head">
+      <h2 id="helpTitle" data-i18n="help.title">How it works</h2>
+      <button type="button" id="helpClose" class="btn btn--ghost" data-i18n="help.close">Close</button>
+    </div>
+    <div class="help__body">
+      <h3 data-i18n="help.h1">What it does</h3><p data-i18n="help.p1"></p>
+      <h3 data-i18n="help.h2">Reading the diagram</h3><p data-i18n="help.p2"></p>
+      <h3 data-i18n="help.h3">Unicast and multicast</h3><p data-i18n="help.p3"></p>
+      <h3 data-i18n="help.h4">AES67: calculated</h3>
+      <ul><li data-i18n="help.l4a"></li><li data-i18n="help.l4b"></li><li data-i18n="help.l4c"></li><li data-i18n="help.l4d"></li></ul>
+      <h3 data-i18n="help.h5">Dante: estimated</h3><p data-i18n="help.p5"></p>
+      <h3 data-i18n="help.h6">Safety threshold</h3><p data-i18n="help.p6"></p>
+      <h3 id="helpLimits" data-i18n="help.h7">Assumptions and limits</h3>
+      <ul><li data-i18n="help.l7a"></li><li data-i18n="help.l7b"></li><li data-i18n="help.l7c"></li><li data-i18n="help.l7d"></li></ul>
+      <h3 id="helpValidation" data-i18n="help.h8">Validation</h3>
+      <ul><li data-i18n="help.v1"></li><li data-i18n="help.v2"></li><li data-i18n="help.v3"></li><li data-i18n="help.v4"></li></ul>
+      <h3 id="helpSources" data-i18n="help.h9">Sources</h3>
+      <ul class="help__sources">
+        <li><a href="https://ravenna-network.com/wp-content/uploads/2020/02/RAVENNA___AES67_V1.0.pdf" target="_blank" rel="noopener">RAVENNA &amp; AES67 white paper</a> — <span data-i18n="src.aes67"></span></li>
+        <li><a href="https://ravenna-network.com/wp-content/uploads/2020/02/AES67_Presentation_NAB_2014_-_Session_Paper_-_Hildebrand.pdf" target="_blank" rel="noopener">AES67, NAB 2014</a> — <span data-i18n="src.nab"></span></li>
+        <li><a href="https://www.aimsalliance.org/wp-content/uploads/2018/11/AES67-101-the-basics-of-AES67.pdf" target="_blank" rel="noopener">AES67-101</a> — <span data-i18n="src.aes101"></span></li>
+        <li><a href="https://studio-tech.com/wp-content/uploads/2020/09/adding-dante-to-your-network-audinate-2020.pdf" target="_blank" rel="noopener">Adding Dante to Your Network</a> — <span data-i18n="src.dante1"></span></li>
+        <li><a href="https://www.getdante.com/resources/catalog/networking/dante-information-for-network-administrators/" target="_blank" rel="noopener">Dante Information for Network Administrators</a> — <span data-i18n="src.dante2"></span></li>
+        <li><a href="https://www.glensound.co.uk/assets/library/5ddff2e74d5e7-Dante%20bandwidth.pdf" target="_blank" rel="noopener">Glensound, Dante bandwidth</a> — <span data-i18n="src.glen"></span></li>
+        <li><a href="https://www.rfc-editor.org/rfc/rfc3550" target="_blank" rel="noopener">RFC 3550</a>, <a href="https://www.rfc-editor.org/rfc/rfc768" target="_blank" rel="noopener">768</a>, <a href="https://www.rfc-editor.org/rfc/rfc791" target="_blank" rel="noopener">791</a> — <span data-i18n="src.rfc"></span></li>
+        <li>IEEE 802.3 — <span data-i18n="src.ieee"></span></li>
+      </ul>
+      <h3 id="helpInstall" data-i18n="help.hInstall">Install as an app</h3><p data-i18n="help.pInstall"></p>
+      <ul><li data-i18n="help.i1"></li><li data-i18n="help.i2"></li><li data-i18n="help.i3"></li><li data-i18n="help.i4"></li></ul>
+      <h3 data-i18n="help.h10">Language, theme and privacy</h3><p data-i18n="help.p10"></p>
+    </div>
+  </dialog>
+
+  <div class="update hidden" id="updateBanner" role="status">
+    <span data-i18n="pwa.update">A new version is ready.</span>
+    <button type="button" id="updateReload" class="btn" data-i18n="pwa.reload">Reload</button>
+    <button type="button" id="updateDismiss" class="btn btn--ghost" data-i18n="pwa.dismiss">Later</button>
+  </div>
+
+  <script src="model.js"></script>
+  <script src="plan.js"></script>
+  <script src="i18n.js"></script>
+  <script src="diagram.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

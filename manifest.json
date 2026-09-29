@@ -1,0 +1,21 @@
+{
+  "id": "com.onairgarage.aoipplanner",
+  "name": "AoIP Bandwidth Planner",
+  "short_name": "AoIP Planner",
+  "description": "Plan Dante and AES67 network bandwidth: devices, switches, links and audio flows, with link load and safety threshold.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0d17",
+  "theme_color": "#0b0d17",
+  "lang": "en",
+  "categories": ["utilities", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
