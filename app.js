@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2026.9.2";
+  var VERSION = "2026.9.3";
   var STORE = "com.onairgarage.aoipplanner.";
   var Model = window.AoipModel, Plan = window.AoipPlan, I18n = window.AoipI18n, Diagram = window.AoipDiagram;
 
