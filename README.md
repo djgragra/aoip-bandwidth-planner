@@ -76,10 +76,11 @@ Results as of September 2026 (`node --test dev/*.test.js`, 33 tests):
 | Hand-worked example | 8 ch, 48 kHz, L24, 1 ms → 1230 bytes, 9.84 Mbps; frame-only 9.68 Mbps; 125 µs 14.21 Mbps | reproduced |
 | Audinate figures | 4 ch = 6 Mbps, 5 ch = 12 Mbps, 64 ch unicast = 96 Mbps ("about 100 Mbps"), 8 multicast ch = 12 Mbps | reproduced |
 | Glensound measured table | 8 / 16 / 32 flows at 48 and 96 kHz | estimate within 3 % |
+| Independent RTP sender (ffmpeg on loopback), 7 cases: 2 and 8 channels at 48 kHz L24 with 125 µs / 250 µs / 1 ms, 44.1 kHz L16, 96 kHz L24, 4 ms | RTP header is the fixed 12 bytes (version 2, no padding, no extension, no CSRC); UDP payload = 12 + channels × samples × bytes; RTP timestamp step = samples per packet; steady-state packet rate = Fs / samples (e.g. 918.75 packets/s at 44.1 kHz) | all agree with the planner (`python3 dev/rtp-check.py`, needs ffmpeg) |
 | Routing and load tests | direction of load, unicast duplication, multicast (snooping on / off), copies, thresholds, unreachable receivers, loops, import repair | pass |
 | Dante Controller User Guide, "Redundancy" | same flow counted on both networks, networks routed separately, same-speed rule, no switch shared by the two networks | pass |
 
-**Not validated**: real captures on a network (a Wireshark capture of an AES67 stream would confirm the 78-byte overhead); the exact text of the AES67 standard (AES67-2018 and the 2023 revision are sold by AES and could not be read; the figures come from documents by the standard's authors, and the 2023 revision, which clarifies channel-count and payload-format requirements, was not checked); Dante at other sample rates and bit depths.
+**Not validated**: the UDP, IPv4 and Ethernet bytes on a real network (the ffmpeg check runs on loopback, where they are not visible; a Wireshark capture of an AES67 stream would confirm the 78-byte overhead); the exact text of the AES67 standard (AES67-2018 and the 2023 revision are sold by AES and could not be read; the figures come from documents by the standard's authors, and the 2023 revision, which clarifies channel-count and payload-format requirements, was not checked); Dante at other sample rates and bit depths.
 
 Also consulted, with no figures used: the white paper "AES67, networked audio and the impulse towards interoperability" (context and history of the standard).
 
