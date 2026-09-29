@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2026.9.1";
+  var VERSION = "2026.9.2";
   var STORE = "com.onairgarage.aoipplanner.";
   var Model = window.AoipModel, Plan = window.AoipPlan, I18n = window.AoipI18n, Diagram = window.AoipDiagram;
 
@@ -258,7 +258,7 @@
 
       var grid = h("div", { class: "grid2" });
       grid.appendChild(field(t("flw.model"), selectInput(f, "mode", [["aes67", t("model.aes67")], ["dante", t("model.dante")]], true)));
-      grid.appendChild(field(t("flw.cast"), selectInput(f, "cast", [["unicast", t("cast.unicast")], ["multicast", t("cast.multicast")]], false)));
+      grid.appendChild(field(t("flw.cast"), selectInput(f, "cast", [["unicast", t("cast.unicast")], ["multicast", t("cast.multicast")]], true), f.mode === "aes67" && f.cast === "unicast" ? t("flw.aes67UnicastHint") : null));
       var srcSel = h("select", { "data-k": "f-src", "data-fid": f.id }, [option("", t("flw.pick"), !f.src)].concat(devs.map(function (d) { return option(d.id, d.name, d.id === f.src); })));
       srcSel.addEventListener("change", function () { f.src = srcSel.value; cleanFlow(f); renderFlows(); onPlanValueChange(false); });
       grid.appendChild(field(t("flw.src"), srcSel));

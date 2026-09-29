@@ -49,6 +49,7 @@ Dante's packet format is proprietary, so Dante cannot be calculated from a stand
 | A flow costs a full flow even for 1 channel; 5 channels use 2 flows; another receiver needs another flow | Glensound, [Dante bandwidth](https://www.glensound.co.uk/assets/library/5ddff2e74d5e7-Dante%20bandwidth.pdf) | Third party (manufacturer), consistent with Audinate |
 | 96 kHz ≈ twice the bandwidth (1 flow of 4 channels: 5.9 Mbps at 48 kHz, 11.8 Mbps at 96 kHz) | Glensound (measurements on a Brooklyn module) | Third-party measurement, no Audinate figure |
 
+| Dante unicast flows carry 4 channels, multicast flows up to 8 (older devices); Dante devices in AES67 mode send AES67 as multicast flows; a Dante device in "Redundant" mode duplicates the audio on both ports; without IGMP snooping multicast reaches every receiver in the domain | [Powersoft application note DO000312.00 REV.00](https://www.powersoft.com/wp-content/uploads/app-note/PS_AN_Powersoft_Amplifiers_and_AoIP_Dante_AES67.pdf) | Read. Manufacturer note (not the standard): corroborates the model; its AES67 amplifier profile (1 ms, 48 kHz, L24, up to 8 channels per stream) matches the AES67 defaults |
 | Redundancy: primary and secondary interfaces connect to two **separate** networks; "the same audio data is transmitted on both the primary and secondary networks simultaneously"; both interfaces of a redundant device must use the same link speed | [Dante Controller User Guide (Audinate)](https://dev.audinate.com/GA/dante-controller/userguide/pdf/AUD-MAN-DanteController-3.10.2.x-v1.0.pdf), section "Redundancy" | Read (version 3.10.2.x, © 2017; newer versions exist and were not read) |
 
 Model: unicast = `ceil(C / 4) × 6 Mbps × (Fs / 48 kHz)`; multicast = `C × 1.5 Mbps × (Fs / 48 kHz)`. A redundant Dante flow is routed and counted once on each network. The planner warns when the two interfaces of a redundant device run at different speeds and when a switch connects the two networks. **Not documented, so not offered**: Dante at 16 bit, and samples-per-channel settings other than the typical 16. Dante on 10 Gbps links is not covered by the documents read.
@@ -76,7 +77,7 @@ Results as of September 2026 (`node --test dev/*.test.js`, 33 tests):
 | Routing and load tests | direction of load, unicast duplication, multicast (snooping on / off), copies, thresholds, unreachable receivers, loops, import repair | pass |
 | Dante Controller User Guide, "Redundancy" | same flow counted on both networks, networks routed separately, same-speed rule, no switch shared by the two networks | pass |
 
-**Not validated**: real captures on a network (a Wireshark capture of an AES67 stream would confirm the 78-byte overhead), the exact text of the AES67 standard (the aes.org page could not be read automatically; the figures come from documents by the standard's authors), Dante at other sample rates and bit depths.
+**Not validated**: real captures on a network (a Wireshark capture of an AES67 stream would confirm the 78-byte overhead); the exact text of the AES67 standard (AES67-2018 and the 2023 revision are sold by AES and could not be read; the figures come from documents by the standard's authors, and the 2023 revision, which clarifies channel-count and payload-format requirements, was not checked); Dante at other sample rates and bit depths.
 
 Related tool, not used by the planner: [aes67-monitor](https://github.com/philhartung/aes67-monitor) (MIT) discovers and monitors real AES67 streams (L16 / L24, up to 64 channels, 44.1 / 48 / 96 kHz, packet times from 0.125 to 4 ms) and can help check a real network.
 
@@ -93,6 +94,7 @@ Last read on 2026-09-29:
 | Dante Information for Network Administrators (Audinate) | July 2026 |
 | Glensound, Dante bandwidth | 22 November 2019 |
 | Dante Controller User Guide (Audinate) | 3.10.2.x, 2017 (newer versions exist) |
+| Powersoft, Amplifiers and AoIP (Dante/AES67) application note | DO000312.00 REV.00 |
 
 ## Run locally
 
@@ -107,7 +109,7 @@ python3 -m http.server 8124
 - `index.html`, `style.css`, `fonts.css`, `app.js`, `model.js` (bandwidth model and routing), `plan.js` (plan data, validation, layout, examples), `diagram.js`, `i18n.js`, `sw.js`, `manifest.json`, `icons/`, `fonts/` — the app (served under `/apps/aoip-bandwidth-planner/`).
 - `dev/` — tests and the icon generator; not deployed.
 
-Static-app constraints: relative paths only, strict CSP (no inline scripts or styles), service worker scoped to the app folder. Bump `CACHE_VERSION` in `sw.js` and `VERSION` in `app.js` on every release. Versions are `year.month.number` (e.g. `2026.9.1`), tags `v2026.9.1`.
+Static-app constraints: relative paths only, strict CSP (no inline scripts or styles), service worker scoped to the app folder. Bump `CACHE_VERSION` in `sw.js` and `VERSION` in `app.js` on every release. Versions are `year.month.number` (e.g. `2026.9.2`), tags `v2026.9.2`.
 
 ## Credits
 

@@ -2,7 +2,7 @@
    © 2026 Graziano Melzi · OnAir Garage — MIT License
 
    Bump CACHE_VERSION whenever any file below changes; old caches are dropped on activate. */
-const CACHE_VERSION = "v2026.9.1";
+const CACHE_VERSION = "v2026.9.2";
 const CACHE_NAME = "aoipplanner-" + CACHE_VERSION;
 
 const PRECACHE_URLS = [

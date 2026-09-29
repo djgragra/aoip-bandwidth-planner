@@ -218,6 +218,9 @@
       "src.dc": "Dante Controller User Guide (Audinate): redundancy, primary and secondary networks",
       "help.v5": "Redundancy behaviour (same audio on both networks, separate networks, same link speed) follows the Dante Controller User Guide.",
 
+      "flw.aes67UnicastHint": "Some devices send AES67 as multicast only (for example Dante devices in AES67 mode).",
+      "src.powersoft": "Powersoft application note on Dante and AES67 (device flows, redundant mode, AES67 settings, IGMP snooping)",
+
       "pwa.update": "A new version is ready.",
       "pwa.reload": "Reload",
       "pwa.dismiss": "Later",
@@ -439,6 +442,9 @@
       "src.dc": "Dante Controller User Guide (Audinate): ridondanza, reti primaria e secondaria",
       "help.v5": "Il comportamento della ridondanza (stesso audio su entrambe le reti, reti separate, stessa velocità di link) segue la Dante Controller User Guide.",
 
+      "flw.aes67UnicastHint": "Alcuni dispositivi inviano AES67 solo in multicast (ad esempio i dispositivi Dante in modalità AES67).",
+      "src.powersoft": "Application note Powersoft su Dante e AES67 (flussi dei dispositivi, modo ridondante, impostazioni AES67, IGMP snooping)",
+
       "pwa.update": "È pronta una nuova versione.",
       "pwa.reload": "Ricarica",
       "pwa.dismiss": "Più tardi",
@@ -659,6 +665,9 @@
       "help.pRed": "Los dispositivos Dante pueden tener una interfaz de red primaria y otra secundaria, conectadas a dos redes separadas. El mismo audio se transmite por ambas redes a la vez y, si una falla, el audio sigue por la otra. Para modelarlo, pon Red en Secundaria en los enlaces de la segunda red y marca «Redundante» en un flujo Dante: el flujo se enruta y se cuenta entonces por separado en cada red. Las dos interfaces de un dispositivo redundante deben tener la misma velocidad de enlace y ningún switch puede conectar las dos redes; el planificador avisa de ambas cosas. La redundancia se ofrece solo para flujos Dante: los streams AES67 se cuentan en la red primaria y los esquemas de redundancia AES67 como SMPTE ST 2022-7 no están modelados.",
       "src.dc": "Dante Controller User Guide (Audinate): redundancia, redes primaria y secundaria",
       "help.v5": "El comportamiento de la redundancia (mismo audio en ambas redes, redes separadas, misma velocidad de enlace) sigue la Dante Controller User Guide.",
+
+      "flw.aes67UnicastHint": "Algunos dispositivos envían AES67 solo en multicast (por ejemplo, dispositivos Dante en modo AES67).",
+      "src.powersoft": "Nota de aplicación de Powersoft sobre Dante y AES67 (flujos de los dispositivos, modo redundante, ajustes AES67, IGMP snooping)",
 
       "pwa.update": "Hay una nueva versión lista.",
       "pwa.reload": "Recargar",
