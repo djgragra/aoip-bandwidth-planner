@@ -11,7 +11,7 @@ Plan a Dante / AES67 audio network: draw devices, switches and links, describe t
 
 - **Network**: any number of devices and switches joined by links of 100 Mbps, 1 Gbps or 10 Gbps. Each link belongs to the **primary** or the **secondary** network (Dante redundancy). Nodes can be dragged (or moved with the arrow keys) on a schematic diagram; "Auto layout" arranges them.
 - **Flows**: each flow has a source device, receivers, channels, sample rate (44.1 / 48 / 96 kHz), bit depth, delivery (unicast or multicast) and a model:
-  - **AES67 (RTP)**: calculated from the standard's packet times, with a packet time choice (125 µs, 250 µs, 333 µs, 1 ms, 4 ms, or custom samples per packet), channels per stream, and 16 / 24 bit.
+  - **AES67 (RTP)**: calculated from the packet times and sizes in documents by the standard's authors (the standard text itself was not read), with a packet time choice (125 µs, 250 µs, 333 µs, 1 ms, 4 ms, or custom samples per packet), channels per stream, and 16 / 24 bit.
   - **Dante (estimate)**: scaled from the figures Audinate publishes (Dante's own packet format is not public); 24 bit only.
   - **Copies** repeat identical flows (e.g. many devices with the same setup).
   - **Redundant** (Dante flows): the flow is also sent on the secondary network, routed and counted separately on each network.
@@ -24,6 +24,8 @@ Plan a Dante / AES67 audio network: draw devices, switches and links, describe t
 ## Formulas and sources
 
 ### AES67: calculated
+
+The AES67 flows are calculated from the packet times and sizes given in documents by the standard's authors (listed below). The standard itself (AES67-2018 and its 2023 revision, sold by AES) was not read: see **Not validated**.
 
 For a stream with `C` channels, sample rate `Fs`, `B` bytes per sample (L16 = 2, L24 = 3) and `S` samples per packet:
 
