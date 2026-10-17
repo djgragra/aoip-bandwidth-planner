@@ -226,7 +226,10 @@
       "pwa.dismiss": "Later",
       "foot.by": "Graziano Melzi · OnAir Garage",
       "foot.license": "MIT License",
-      "foot.contact": "Contact"
+      "foot.contact": "Contact",
+      "tip.text": "Useful to you? A coffee for the mechanics is always welcome.",
+      "tip.btn": "Tip jar",
+      "tip.url": "https://onairgarage.com/support/"
     },
     it: {
       "app.title": "AoIP Bandwidth Planner",
@@ -450,7 +453,10 @@
       "pwa.dismiss": "Più tardi",
       "foot.by": "Graziano Melzi · OnAir Garage",
       "foot.license": "Licenza MIT",
-      "foot.contact": "Contatti"
+      "foot.contact": "Contatti",
+      "tip.text": "Ti è utile? Un caffè per i meccanici è sempre ben accetto.",
+      "tip.btn": "Salvadanaio",
+      "tip.url": "https://onairgarage.com/it/support/"
     },
     es: {
       "app.title": "AoIP Bandwidth Planner",
@@ -674,7 +680,10 @@
       "pwa.dismiss": "Luego",
       "foot.by": "Graziano Melzi · OnAir Garage",
       "foot.license": "Licencia MIT",
-      "foot.contact": "Contacto"
+      "foot.contact": "Contacto",
+      "tip.text": "¿Te resulta útil? Un café para los mecánicos siempre es bienvenido.",
+      "tip.btn": "Hucha",
+      "tip.url": "https://onairgarage.com/es/support/"
     }
   };
 

@@ -69,7 +69,7 @@ Model: unicast = `ceil(C / 4) × 6 Mbps × (Fs / 48 kHz)`; multicast = `C × 1.5
 
 ## Validation and references
 
-Results as of September 2026 (`node --test dev/*.test.js`, 33 tests):
+Results as of October 2026 (`node --test dev/*.test.js`, 38 tests):
 
 | Reference | What it validates | Result |
 |---|---|---|
@@ -81,8 +81,9 @@ Results as of September 2026 (`node --test dev/*.test.js`, 33 tests):
 | Independent RTP sender (ffmpeg on loopback), 7 cases: 2 and 8 channels at 48 kHz L24 with 125 µs / 250 µs / 1 ms, 44.1 kHz L16, 96 kHz L24, 4 ms | RTP header is the fixed 12 bytes (version 2, no padding, no extension, no CSRC); UDP payload = 12 + channels × samples × bytes; RTP timestamp step = samples per packet; steady-state packet rate = Fs / samples (e.g. 918.75 packets/s at 44.1 kHz) | all agree with the planner (`python3 dev/rtp-check.py`, needs ffmpeg) |
 | Routing and load tests | direction of load, unicast duplication, multicast (snooping on / off), copies, thresholds, unreachable receivers, loops, import repair | pass |
 | Dante Controller User Guide, "Redundancy" | same flow counted on both networks, networks routed separately, same-speed rule, no switch shared by the two networks | pass |
+| Release consistency | `VERSION`, `CACHE_VERSION` and the footer agree; the tip card texts exist in English, Italian and Spanish and its link follows the language; the jar is cached for offline use; the manifest screenshots are declared with their real size | pass |
 
-**Not validated**: the UDP, IPv4 and Ethernet bytes on a real network (the ffmpeg check runs on loopback, where they are not visible; a Wireshark capture of an AES67 stream would confirm the 78-byte overhead); the exact text of the AES67 standard (AES67-2018 and the 2023 revision are sold by AES and could not be read; the figures come from documents by the standard's authors, and the 2023 revision, which clarifies channel-count and payload-format requirements, was not checked); Dante at other sample rates and bit depths.
+**Not validated**: touch targets (measured at 44 px or more with Chromium touch emulation at 375 px, not on a real phone or tablet) and the install flow on Android and iOS (the manifest has screenshots now, but the install sheet was not seen on a device); the UDP, IPv4 and Ethernet bytes on a real network (the ffmpeg check runs on loopback, where they are not visible; a Wireshark capture of an AES67 stream would confirm the 78-byte overhead); the exact text of the AES67 standard (AES67-2018 and the 2023 revision are sold by AES and could not be read; the figures come from documents by the standard's authors, and the 2023 revision, which clarifies channel-count and payload-format requirements, was not checked); Dante at other sample rates and bit depths.
 
 Also consulted, with no figures used: the white paper "AES67, networked audio and the impulse towards interoperability" (context and history of the standard).
 
@@ -115,10 +116,11 @@ python3 -m http.server 8124
 
 ## Structure
 
-- `index.html`, `style.css`, `fonts.css`, `app.js`, `model.js` (bandwidth model and routing), `plan.js` (plan data, validation, layout, examples), `diagram.js`, `i18n.js`, `sw.js`, `manifest.json`, `icons/`, `fonts/` — the app (served under `/apps/aoip-bandwidth-planner/`).
+- `index.html`, `style.css`, `fonts.css`, `app.js`, `model.js` (bandwidth model and routing), `plan.js` (plan data, validation, layout, examples), `diagram.js`, `i18n.js`, `sw.js`, `manifest.json`, `icons/` (the jar of the tip card included), `screenshots/` (manifest screenshots), `fonts/` — the app (served under `/apps/aoip-bandwidth-planner/`).
 - `dev/` — tests and the icon generator; not deployed.
+- `.github/workflows/` — `ci.yml` (tests on every pull request and push to `main`) and `release.yml` (publishes a release: run it from the Actions tab with the version; it checks the version against `app.js` and `sw.js`, runs the tests, and GitHub creates the tag on `main`).
 
-Static-app constraints: relative paths only, strict CSP (no inline scripts or styles), service worker scoped to the app folder. Bump `CACHE_VERSION` in `sw.js` and `VERSION` in `app.js` on every release. Versions are `year.month.number` (e.g. `2026.9.3`), tags `v2026.9.3`.
+Static-app constraints: relative paths only, strict CSP (no inline scripts or styles), service worker scoped to the app folder. Bump `CACHE_VERSION` in `sw.js` and `VERSION` in `app.js` on every release. Versions are `year.month.number` (e.g. `2026.10.1`), tags `v2026.10.1`.
 
 ## Credits
 
