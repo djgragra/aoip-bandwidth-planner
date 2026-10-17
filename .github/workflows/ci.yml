@@ -1,0 +1,20 @@
+name: CI
+
+# Runs the tests on every pull request and every push to main. The app is plain static files: no install step.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: node --test dev/*.test.js
