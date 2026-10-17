@@ -2,13 +2,13 @@
    © 2026 Graziano Melzi · OnAir Garage — MIT License
 
    Bump CACHE_VERSION whenever any file below changes; old caches are dropped on activate. */
-const CACHE_VERSION = "v2026.9.3";
+const CACHE_VERSION = "v2026.10.1";
 const CACHE_NAME = "aoipplanner-" + CACHE_VERSION;
 
 const PRECACHE_URLS = [
   "./", "./index.html", "./manifest.json", "./style.css", "./fonts.css",
   "./model.js", "./plan.js", "./i18n.js", "./diagram.js", "./app.js",
-  "./icons/icon.svg", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png",
+  "./icons/icon.svg", "./icons/icon-180.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/tip-jar.webp",
   "./fonts/IBMPlexSans-Regular-Latin1.woff2", "./fonts/IBMPlexSans-Regular-Pi.woff2",
   "./fonts/IBMPlexSans-Medium-Latin1.woff2", "./fonts/IBMPlexSans-Medium-Pi.woff2",
   "./fonts/IBMPlexSans-SemiBold-Latin1.woff2", "./fonts/IBMPlexSans-SemiBold-Pi.woff2",

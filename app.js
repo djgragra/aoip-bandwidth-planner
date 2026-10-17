@@ -3,7 +3,7 @@
 (function () {
   "use strict";
 
-  var VERSION = "2026.9.3";
+  var VERSION = "2026.10.1";
   var STORE = "com.onairgarage.aoipplanner.";
   var Model = window.AoipModel, Plan = window.AoipPlan, I18n = window.AoipI18n, Diagram = window.AoipDiagram;
 
@@ -50,6 +50,8 @@
     for (var i = 0; i < nodes.length; i++) nodes[i].textContent = t(nodes[i].getAttribute("data-i18n"));
     $("langSel").setAttribute("aria-label", t("ctl.language"));
     $("diagram").setAttribute("aria-label", t("dia.label"));
+    $("tipLink").setAttribute("href", t("tip.url"));
+    $("tipArt").setAttribute("href", t("tip.url"));
     renderAll();
   }
   function applyTheme() {
