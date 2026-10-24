@@ -62,9 +62,18 @@ jobs:
       - name: Tests
         run: node --test dev/*.test.js
 
+      - name: Build the three manuals (PDF)
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.release_version }}
+        run: |
+          mkdir -p manuals
+          python3 dev/manual/build.py "${RELEASE_VERSION#v}" manuals
+          ls -l manuals
+
       - name: Publish the release (creates the tag on main)
         uses: softprops/action-gh-release@v3
         with:
+          files: manuals/*.pdf
           tag_name: v${{ github.event.inputs.release_version }}
           target_commitish: ${{ github.sha }}
           name: AoIP Bandwidth Planner ${{ github.event.inputs.release_version }}

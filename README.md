@@ -6,6 +6,7 @@ Plan a Dante / AES67 audio network: draw devices, switches and links, describe t
 - Web app: https://onairgarage.com/apps/aoip-bandwidth-planner/
 - Author: Graziano Melzi · OnAir Garage — hello@onairgarage.com
 - License: MIT (see `LICENSE`)
+- Manual: attached to every release as three PDFs, English (`AoIP-Bandwidth-Planner-Manual-EN-<version>.pdf`), Italian (`-IT-`) and Spanish (`-ES-`); the source is in `dev/manual/` (`python3 dev/manual/build.py <version> <folder>` makes the PDFs; it needs Chrome or Chromium).
 
 ## What it does
 
