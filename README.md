@@ -107,6 +107,8 @@ Last read on 2026-09-29:
 | Glensound DARK16AO product manual (Dante / AES67) | undated, read 2026-09-29 |
 | "Open Standards in Pro Audio: AES67" (Focusrite slides) | undated |
 
+<a href="https://ko-fi.com/F8V328ADFH"><img height="36" src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com"></a>
+
 ## Run locally
 
 Static files, no build step. Serve the folder with any web server (service workers need `http://localhost` or HTTPS):
@@ -126,3 +128,9 @@ Static-app constraints: relative paths only, strict CSP (no inline scripts or st
 ## Credits
 
 Fonts (SIL Open Font License 1.1, see `fonts/OFL-*.txt`): IBM Plex Sans, IBM Plex Mono — https://github.com/IBM/plex.
+
+## Support
+
+This tool is free and will stay free, with source code. If it saved your day, you can leave a tip on Ko-fi: a thank-you, nothing more.
+
+<a href="https://ko-fi.com/F8V328ADFH"><img height="36" src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me a Coffee at ko-fi.com"></a>
